@@ -20,19 +20,15 @@ position: str = "bottom"
 
 position: "bottom" — внизу, "top" — вверху, "center" — по центру
 """
-# Экранируем спецсимволы для FFmpeg filter
 safe_text = text.replace("'", "'\\\\\\''").replace(":", "\\:").replace(",", "\\,")
 
-# Позиция текста
 if position == "bottom":
     y_pos = "h-th-40"
 elif position == "top":
     y_pos = "40"
-else:  # center
+else:
     y_pos = "(h-th)/2"
 
-# Сначала создаём фон для текста (чтобы читалось на любом видео)
-# drawtext с box=1 даёт подложку
 filter_str = (
     f"drawtext=text='{safe_text}':"
     f"fontsize={font_size}:"
@@ -86,10 +82,10 @@ for i, video_name in enumerate(videos):
     if i >= len(texts):
         print(f"[VideoFinalizer] Закончились тексты на видео #{i+1}")
         break
-    
+
     input_path = os.path.join(video_dir, video_name)
     output_path = os.path.join(output_dir, f"final_{i+1:04d}.mp4")
-    
+
     success = add_text_overlay(input_path, output_path, texts[i], **kwargs)
     if success:
         final_paths.append(output_path)
@@ -99,6 +95,5 @@ return final_paths
 
 
 if __name__ == "__main__":
-# Тест
 texts = ["Смотрите это видео! #тренд #лайфхак", "Невероятно, но факт! #shorts #рекомендации"]
 batch_add_text("output/clips", texts)
