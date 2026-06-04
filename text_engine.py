@@ -48,12 +48,12 @@ user_prompt = (
 )
 
 all_texts = []
-batch_size = 20  # DeepSeek может выдать не все сразу, бьём на батчи
+batch_size = 20
 
 for batch_start in range(0, count, batch_size):
     remaining = count - batch_start
     current_batch = min(batch_size, remaining)
-    
+
     payload = {
         "model": "deepseek-chat",
         "messages": [
@@ -63,7 +63,7 @@ for batch_start in range(0, count, batch_size):
         "temperature": 0.9,
         "max_tokens": 4000
     }
-    
+
     try:
         resp = requests.post(
             DEEPSEEK_API_URL,
@@ -76,18 +76,17 @@ for batch_start in range(0, count, batch_size):
         )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
-        
-        # Парсим результат — каждая строка это текст
+
         lines = [l.strip() for l in content.split("
 ") if l.strip() and not l.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "0"))]
         all_texts.extend(lines[:current_batch])
-        
+
         print(f"[TextEngine] Батч {batch_start//batch_size + 1}: +{len(lines[:current_batch])} текстов")
-        
+
     except Exception as e:
         print(f"[TextEngine] Ошибка батча {batch_start//batch_size + 1}: {e}")
-    
-    time.sleep(1)  # не долбим API
+
+    time.sleep(1)
 
 print(f"[TextEngine] Всего сгенерировано: {len(all_texts)}/{count} текстов")
 return all_texts
@@ -109,7 +108,6 @@ with open(input_path, "r", encoding="utf-8") as f:
 
 
 if __name__ == "__main__":
-# Тест
 texts = generate_texts("приложение для управления задачами и проектами", count=5)
 for t in texts:
     print(t)
