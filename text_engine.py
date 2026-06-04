@@ -13,18 +13,8 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 
 
-def generate_texts(
-prompt_context: str,
-count: int = 100,
-lang: str = "русский",
-api_key: Optional[str] = None
-) -> list:
-"""
-Генерирует count уникальных текстов через DeepSeek.
-
-prompt_context — описание того, что продвигаем (1-2 предложения).
-Каждый сгенерированный текст = 1-2 предложения + хэштеги.
-"""
+def generate_texts(prompt_context: str, count: int = 100, lang: str = "русский", api_key: Optional[str] = None) -> list:
+"""Генерирует count уникальных текстов через DeepSeek. prompt_context — описание того, что продвигаем."""
 key = api_key or DEEPSEEK_API_KEY
 if not key:
     print("[TextEngine] Ошибка: не задан DEEPSEEK_API_KEY")
