@@ -19,7 +19,6 @@ key = api_key or DEEPSEEK_API_KEY
 if not key:
     print("[TextEngine] Ошибка: не задан DEEPSEEK_API_KEY")
     return []
-
 system_prompt = (
     f"Ты — креативный копирайтер. Твоя задача — генерировать короткие "
     f"тексты для видео в TikTok на языке: {lang}. "
@@ -27,23 +26,17 @@ system_prompt = (
     f"В конце каждого текста — 5-10 релевантных хэштегов через пробел. "
     f"Тексты должны быть разными по формулировке, но об одном и том же."
 )
-
 user_prompt = (
     f"Сгенерируй ровно {count} уникальных текстов для видео про: {prompt_context}. "
-    f"Каждый текст с новой строки. Формат одной строки:
-"
-    f"Текст с хэштегами
-"
+    f"Каждый текст с новой строки. Формат одной строки:\n"
+    f"Текст с хэштегами\n"
     f"Не нумеруй. Не добавляй лишнего."
 )
-
 all_texts = []
 batch_size = 20
-
 for batch_start in range(0, count, batch_size):
     remaining = count - batch_start
     current_batch = min(batch_size, remaining)
-
     payload = {
         "model": "deepseek-chat",
         "messages": [
@@ -53,7 +46,6 @@ for batch_start in range(0, count, batch_size):
         "temperature": 0.9,
         "max_tokens": 4000
     }
-
     try:
         resp = requests.post(
             DEEPSEEK_API_URL,
@@ -66,18 +58,12 @@ for batch_start in range(0, count, batch_size):
         )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
-
-        lines = [l.strip() for l in content.split("
-") if l.strip() and not l.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "0"))]
+        lines = [l.strip() for l in content.split("\n") if l.strip() and not l.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "0"))]
         all_texts.extend(lines[:current_batch])
-
-        print(f"[TextEngine] Батч {batch_start//batch_size + 1}: +{len(lines[:current_batch])} текстов")
-
+        print(f"[TextEngine] Батч {batch_start // batch_size + 1}: +{len(lines[:current_batch])} текстов")
     except Exception as e:
-        print(f"[TextEngine] Ошибка батча {batch_start//batch_size + 1}: {e}")
-
+        print(f"[TextEngine] Ошибка батча {batch_start // batch_size + 1}: {e}")
     time.sleep(1)
-
 print(f"[TextEngine] Всего сгенерировано: {len(all_texts)}/{count} текстов")
 return all_texts
 
@@ -86,8 +72,7 @@ def save_texts(texts: list, output_path: str = "output/texts.txt"):
 """Сохраняет тексты в файл (по одному на строке)."""
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 with open(output_path, "w", encoding="utf-8") as f:
-    f.write("
-".join(texts))
+    f.write("\n".join(texts))
 print(f"[TextEngine] Тексты сохранены: {output_path}")
 
 
