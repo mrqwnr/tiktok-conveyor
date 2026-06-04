@@ -25,11 +25,11 @@ def get_video_duration(video_path: str) -> float:
 def random_cut_params(duration: float, clip_min: int = 15, clip_max: int = 30) -> tuple:
     """
     Случайная точка старта и длина для нарезки.
-    Возвращает (start_time, clip_duration).
+    Возвращает (start_time, clip_duration) или None, если видео слишком короткое.
     """
     max_duration = min(clip_max, duration - 1)
     if max_duration < clip_min:
-        return None  # видео слишком короткое
+        return None
 
     clip_duration = random.randint(clip_min, max_duration)
     max_start = duration - clip_duration
@@ -44,9 +44,7 @@ def cut_clip(
     duration: float,
     fps: int = 30
 ) -> bool:
-    """
-    Нарезать кусок видео.
-    """
+    """Нарезать кусок видео через FFmpeg."""
     cmd = [
         "ffmpeg", "-y",
         "-ss", str(start_time),
@@ -56,7 +54,7 @@ def cut_clip(
         "-preset", "fast",
         "-crf", "23",
         "-r", str(fps),
-        "-an",  # без аудио
+        "-an",
         output_path
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -86,17 +84,17 @@ def generate_clips(
 
     generated = []
     attempts = 0
-    max_attempts = num_clips * 3  # чтобы не зависнуть
+    max_attempts = num_clips * 3
 
     while len(generated) < num_clips and attempts < max_attempts:
         attempts += 1
         params = random_cut_params(duration, clip_min, clip_max)
         if params is None:
             break
-        
+
         start_time, clip_dur = params
         output_path = os.path.join(output_dir, f"{prefix}_{len(generated)+1:04d}.mp4")
-        
+
         if cut_clip(input_path, output_path, start_time, clip_dur):
             generated.append(output_path)
             print(f"[VideoProcessor] Клип #{len(generated)}: {start_time:.1f}с -> +{clip_dur:.0f}с")
@@ -106,7 +104,6 @@ def generate_clips(
 
 
 if __name__ == "__main__":
-    # Тест
     clips = generate_clips("input/demo.mp4", "output/clips", num_clips=10)
     for c in clips:
         print(c)
