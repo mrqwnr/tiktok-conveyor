@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+sessions/
+output/
+input/*.mp4
+accounts.txt
