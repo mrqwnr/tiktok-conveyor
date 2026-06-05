@@ -1,5 +1,5 @@
 """
-text_engine.py — Генерация уникальных текстов и хэштегов через DeepSeek API
+text_engine.py — Генерация уникальных текстов и хэштегов через Gemini API (бесплатно)
 """
 
 import requests
@@ -9,61 +9,71 @@ import time
 from typing import Optional
 
 
-DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 
 def generate_texts(prompt_context: str, count: int = 100, lang: str = "русский", api_key: Optional[str] = None) -> list:
-"""Генерирует count уникальных текстов через DeepSeek. prompt_context — описание того, что продвигаем."""
-key = api_key or DEEPSEEK_API_KEY
+"""Генерирует count уникальных текстов через Gemini (бесплатный тир)."""
+key = api_key or GEMINI_API_KEY
 if not key:
-    print("[TextEngine] Ошибка: не задан DEEPSEEK_API_KEY")
+    print("[TextEngine] Ошибка: не задан GEMINI_API_KEY")
     return []
+
 system_prompt = (
-    f"Ты — креативный копирайтер. Твоя задача — генерировать короткие "
-    f"тексты для видео в TikTok на языке: {lang}. "
+    f"Ты — креативный копирайтер для TikTok. Генерируй короткие тексты на языке: {lang}. "
     f"Каждый текст: 1-2 предложения, цепляющие, естественные. "
     f"В конце каждого текста — 5-10 релевантных хэштегов через пробел. "
     f"Тексты должны быть разными по формулировке, но об одном и том же."
 )
-user_prompt = (
-    f"Сгенерируй ровно {count} уникальных текстов для видео про: {prompt_context}. "
-    f"Каждый текст с новой строки. Формат одной строки:\n"
-    f"Текст с хэштегами\n"
-    f"Не нумеруй. Не добавляй лишнего."
-)
+
 all_texts = []
 batch_size = 20
+
 for batch_start in range(0, count, batch_size):
     remaining = count - batch_start
     current_batch = min(batch_size, remaining)
+
+    prompt = (
+        f"{system_prompt}\n\n"
+        f"Сгенерируй ровно {current_batch} уникальных текстов для видео про: {prompt_context}.\n"
+        f"Каждый текст с новой строки. Формат одной строки:\n"
+        f"Текст с хэштегами\n"
+        f"Не нумеруй. Не добавляй лишнего."
+    )
+
     payload = {
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Сгенерируй ровно {current_batch} текстов. {user_prompt}"}
-        ],
-        "temperature": 0.9,
-        "max_tokens": 4000
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.9,
+            "maxOutputTokens": 4000
+        }
     }
+
     try:
         resp = requests.post(
-            DEEPSEEK_API_URL,
-            headers={
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json"
-            },
+            f"{GEMINI_API_URL}?key={key}",
+            headers={"Content-Type": "application/json"},
             json=payload,
             timeout=120
         )
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+
+        # Gemini возвращает текст в candidates[0].content.parts[0].text
+        content = data["candidates"][0]["content"]["parts"][0]["text"]
+
         lines = [l.strip() for l in content.split("\n") if l.strip() and not l.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "0"))]
         all_texts.extend(lines[:current_batch])
         print(f"[TextEngine] Батч {batch_start // batch_size + 1}: +{len(lines[:current_batch])} текстов")
+
     except Exception as e:
         print(f"[TextEngine] Ошибка батча {batch_start // batch_size + 1}: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"  Ответ: {e.response.text[:200]}")
+
     time.sleep(1)
+
 print(f"[TextEngine] Всего сгенерировано: {len(all_texts)}/{count} текстов")
 return all_texts
 
